@@ -30,12 +30,12 @@ class VideoRecorder {
     func setupVideoInput() {
         guard let assetWriter = parentRecorder?.assetWriter else { return }
 
-        // Define compression properties
         let compressionProperties: [String: Any] = [
             AVVideoAverageBitRateKey: renderSettings.getDefaultBitrate(),
-            AVVideoMaxKeyFrameIntervalKey: 1, // Force keyframe at start
+            AVVideoMaxKeyFrameIntervalKey: renderSettings.getDefaultKeyframeInterval(), // Keyframe every 1 second at 30 fps
             AVVideoProfileLevelKey: AVVideoProfileLevelH264High41,
-            AVVideoH264EntropyModeKey: AVVideoH264EntropyModeCABAC
+            AVVideoH264EntropyModeKey: AVVideoH264EntropyModeCABAC,
+            AVVideoQualityKey: 0.1 // High quality (0.0 - 1.0)
         ]
 
         let videoSettings: [String: Any] = [

@@ -81,4 +81,9 @@ public struct RenderSettings {
         default: return 3_000_000 // for 16/9 1080p
         }
     }
+
+    func getDefaultKeyframeInterval() -> Int32 {
+        // Default to a keyframe every 2 seconds, but cap at 60 frames
+        return min(fps * 2, 60)
+    }
 }
