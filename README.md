@@ -1,7 +1,12 @@
 
 # 〜StreamUI [BETA!]
 
-[![Discord](https://img.shields.io/discord/1071029581009657896?style=flat&logo=discord&logoColor=fff&color=404eed)](https://discord.gg/NpHj7brca4)
+[![Team Chat](https://design.vapor.codes/images/discordchat.svg)](https://discord.gg/NpHj7brca4)
+[![MIT License](https://design.vapor.codes/images/mitlicense.svg)](LICENSE)
+[![Swift 5.10+](https://design.vapor.codes/images/swift510up.svg)](https://swift.org)
+
+
+<!--[![Discord](https://img.shields.io/discord/1071029581009657896?style=flat&logo=discord&logoColor=fff&color=404eed)](https://discord.gg/NpHj7brca4)-->
 <!--[![CI](https://github.com/pointfreeco/swift-clocks/workflows/CI/badge.svg)](https://github.com/pointfreeco/swift-clocks/actions?query=workflow%3ACI)-->
 <!--[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fpointfreeco%2Fswift-clocks%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/pointfreeco/swift-clocks)-->
 <!--[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fpointfreeco%2Fswift-clocks%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/pointfreeco/swift-clocks)-->
@@ -140,7 +145,9 @@ recorder.resumeRecording()
 await recorder.waitForRecordingCompletion()
 ```
 
-* **Video will automatically stop recording after the  specified time**
+* **swift run** or build xcode
+
+* **Video will automatically stop recording after the  specified time and if specified will start live streaming!**
 
 
 ## Supported SwiftUI Views

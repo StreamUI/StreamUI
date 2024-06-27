@@ -65,10 +65,8 @@ public class Recorder {
     }
 
     public func setupRecording() {
-        let tempDirectoryURL = FileManager.default.temporaryDirectory
-        let outputURL = tempDirectoryURL.appendingPathComponent(UUID().uuidString).appendingPathExtension("mp4")
         do {
-            assetWriter = try AVAssetWriter(outputURL: outputURL, fileType: .mp4)
+            assetWriter = try AVAssetWriter(outputURL: renderSettings.tempOutputURL, fileType: .mp4)
 
             videoRecorder.setupVideoInput()
             audioRecorder.setupAudioInput()
@@ -130,14 +128,13 @@ public class Recorder {
         }
     }
 
-    func finishRecording() {
+    func finishRecording() async {
         print("FINISH recording")
         guard state != .idle else { return }
 
         audioRecorder.stopRecording()
 
-        finishWriting()
-        recordingCompletionContinuation.continuation.finish()
+        await finishWriting()
         state = .idle
     }
 
@@ -169,25 +166,34 @@ public class Recorder {
 
     public func waitForRecordingCompletion() async {
         for await _ in recordingCompletionContinuation.stream {}
-        try? await Task.sleep(for: .seconds(1.0))
     }
 
-    private func finishWriting() {
-        print("finish writing")
-        if renderSettings.saveVideoFile {
-            assetWriter?.finishWriting {
-                print("Recording finished and saved to \(String(describing: self.assetWriter?.outputURL))")
-//                DispatchQueue.main.async {
-//                    NSApplication.shared.terminate(nil)
-//                }
-
-                if let outputURL = self.assetWriter?.outputURL, let duration = self.renderSettings.captureDuration {
-                    self.trimVideo(at: outputURL, to: duration) { trimmedURL in
-                        print("Recording finished and saved to \(String(describing: trimmedURL))")
-                    }
-                }
-            }
+    private func finishWriting() async {
+        print("Finish writing")
+        guard renderSettings.saveVideoFile else {
+            recordingCompletionContinuation.continuation.finish()
+            return
         }
+
+        await assetWriter?.finishWriting()
+
+        guard let tempOutputURL = assetWriter?.outputURL else {
+            print("No output URL available")
+            recordingCompletionContinuation.continuation.finish()
+            return
+        }
+
+        if let outputURL = assetWriter?.outputURL, let duration = renderSettings.captureDuration {
+            if let trimmedURL = await trimVideo(at: outputURL, to: duration) {
+                print("Recording trimmed and saved to \(trimmedURL)")
+                try? FileManager.default.removeItem(at: tempOutputURL)
+            }
+        } else {
+            try? FileManager.default.moveItem(at: tempOutputURL, to: renderSettings.outputURL)
+            print("Recording finished and saved to \(String(describing: assetWriter?.outputURL))")
+        }
+
+        recordingCompletionContinuation.continuation.finish()
     }
 
 //    Audio
@@ -237,35 +243,36 @@ public class Recorder {
         }
     }
 
-    private func trimVideo(at url: URL, to duration: Duration, completion: @escaping (URL?) -> Void) {
+    private func trimVideo(at url: URL, to duration: Duration) async -> URL? {
         let asset = AVAsset(url: url)
         let startTime = CMTime.zero
         let endTime = CMTime(seconds: Double(duration.components.seconds), preferredTimescale: 600)
 
         guard let exportSession = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetHighestQuality) else {
             print("Failed to create export session")
-            completion(nil)
-            return
+            return nil
         }
 
-        let trimmedOutputURL = url.deletingLastPathComponent().appendingPathComponent(UUID().uuidString).appendingPathExtension("mp4")
+        let trimmedOutputURL = renderSettings.outputURL
         exportSession.outputURL = trimmedOutputURL
         exportSession.outputFileType = .mp4
         exportSession.timeRange = CMTimeRange(start: startTime, end: endTime)
 
-        exportSession.exportAsynchronously {
-            switch exportSession.status {
-            case .completed:
-                print("Trimming completed successfully")
-                completion(trimmedOutputURL)
-            case .failed:
-                print("Trimming failed: \(String(describing: exportSession.error))")
-                completion(nil)
-            case .cancelled:
-                print("Trimming cancelled")
-                completion(nil)
-            default:
-                break
+        return await withCheckedContinuation { continuation in
+            exportSession.exportAsynchronously {
+                switch exportSession.status {
+                case .completed:
+                    print("Trimming completed successfully")
+                    continuation.resume(returning: trimmedOutputURL)
+                case .failed:
+                    print("Trimming failed: \(String(describing: exportSession.error))")
+                    continuation.resume(returning: nil)
+                case .cancelled:
+                    print("Trimming cancelled")
+                    continuation.resume(returning: nil)
+                default:
+                    continuation.resume(returning: nil)
+                }
             }
         }
     }

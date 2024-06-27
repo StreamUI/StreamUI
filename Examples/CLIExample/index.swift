@@ -118,7 +118,6 @@ import VideoViews
 @main
 enum CLIExample {
     static func main() async throws {
-        print("huhu")
         let recorder = createStreamUIRecorder(
             fps: 30,
             width: 1080,

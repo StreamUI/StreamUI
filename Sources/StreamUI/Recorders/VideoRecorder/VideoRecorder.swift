@@ -32,7 +32,7 @@ class VideoRecorder {
 
         let compressionProperties: [String: Any] = [
             AVVideoAverageBitRateKey: renderSettings.getDefaultBitrate(),
-            AVVideoMaxKeyFrameIntervalKey: renderSettings.getDefaultKeyframeInterval(), // Keyframe every 1 second at 30 fps
+            AVVideoMaxKeyFrameIntervalKey: renderSettings.getDefaultKeyframeInterval(),
             AVVideoProfileLevelKey: AVVideoProfileLevelH264High41,
             AVVideoH264EntropyModeKey: AVVideoH264EntropyModeCABAC,
             AVVideoQualityKey: 0.85 // High quality (0.0 - 1.0)
