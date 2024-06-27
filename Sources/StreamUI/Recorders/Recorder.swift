@@ -91,9 +91,12 @@ public class Recorder {
             let totalFrames = calculateTotalFrames()
             let frameDuration = Duration.seconds(1) / Int(renderSettings.fps)
 
+            var bar = ProgressBar(count: totalFrames)
+
             while !Task.isCancelled, self.frameTimer.frameCount < totalFrames {
                 switch state {
                 case .recording:
+                    bar.resume()
                     let start = clock.now
 
                     await captureFrame()
@@ -102,12 +105,14 @@ public class Recorder {
 
                     await controlledClock.advance(by: frameDuration)
                     let sleepDuration = frameDuration - elapsed
+                    bar.next()
 
                     if sleepDuration > .zero {
                         try await Task.sleep(for: sleepDuration)
                     } else {}
 
                 case .paused:
+                    bar.pause()
                     try await Task.sleep(for: frameDuration)
 
                 case .finished, .idle:

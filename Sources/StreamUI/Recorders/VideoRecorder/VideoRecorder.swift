@@ -35,7 +35,7 @@ class VideoRecorder {
             AVVideoMaxKeyFrameIntervalKey: renderSettings.getDefaultKeyframeInterval(), // Keyframe every 1 second at 30 fps
             AVVideoProfileLevelKey: AVVideoProfileLevelH264High41,
             AVVideoH264EntropyModeKey: AVVideoH264EntropyModeCABAC,
-            AVVideoQualityKey: 0.1 // High quality (0.0 - 1.0)
+            AVVideoQualityKey: 0.85 // High quality (0.0 - 1.0)
         ]
 
         let videoSettings: [String: Any] = [

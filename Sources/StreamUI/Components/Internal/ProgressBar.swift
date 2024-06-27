@@ -1,8 +1,7 @@
+// File.swift
 //
-//  File.swift
 //
-//
-//  Created by Jordan Howlett on 6/20/24.
+// Created by Jordan Howlett on 6/20/24.
 //
 
 import Foundation
@@ -21,11 +20,12 @@ struct ProgressBarTerminalPrinter: ProgressBarPrinter {
         // have to move the cursor down one line initially.
         print("")
     }
-    
+
     mutating func display(_ progressBar: ProgressBar) {
         let currentTime = getTimeOfDay()
-        if currentTime - lastPrintedTime > 0.1 || progressBar.index == progressBar.count {
-            print("\u{1B}[1A\u{1B}[K\(progressBar.value)")
+        if currentTime - lastPrintedTime > 0.1 || progressBar.index == progressBar.count || progressBar.isPaused {
+            let output = progressBar.isPaused ? "Paused" : progressBar.value
+            print("\u{1B}[1A\u{1B}[K\(output)")
             lastPrintedTime = currentTime
         }
     }
@@ -39,13 +39,14 @@ public struct ProgressBar {
     public let count: Int
     let configuration: [ProgressElementType]?
     var printer: ProgressBarPrinter
-    
+    public var isPaused = false
+
     public var value: String {
         let configuration = self.configuration ?? ProgressBar.defaultConfiguration
         let values = configuration.map { $0.value(self) }
         return values.joined(separator: " ")
     }
-    
+
     public static var defaultConfiguration: [ProgressElementType] = [ProgressIndex(), ProgressBarLine(), ProgressTimeEstimates()]
 
     public init(count: Int, configuration: [ProgressElementType]? = nil, printer: ProgressBarPrinter? = nil) {
@@ -53,7 +54,7 @@ public struct ProgressBar {
         self.configuration = configuration
         self.printer = printer ?? ProgressBarTerminalPrinter()
     }
-    
+
     public mutating func next() {
         guard index <= count else { return }
         printer.display(self)
@@ -65,6 +66,16 @@ public struct ProgressBar {
         self.index = index
         printer.display(self)
     }
+
+    public mutating func pause() {
+        isPaused = true
+        printer.display(self)
+    }
+
+    public mutating func resume() {
+        isPaused = false
+        printer.display(self)
+    }
 }
 
 // MARK: - GeneratorType
@@ -72,12 +83,12 @@ public struct ProgressBar {
 public struct ProgressGenerator<G: IteratorProtocol>: IteratorProtocol {
     var source: G
     var progressBar: ProgressBar
-    
+
     init(source: G, count: Int, configuration: [ProgressElementType]? = nil, printer: ProgressBarPrinter? = nil) {
         self.source = source
         self.progressBar = ProgressBar(count: count, configuration: configuration, printer: printer)
     }
-    
+
     public mutating func next() -> G.Element? {
         progressBar.next()
         return source.next()
@@ -90,13 +101,13 @@ public struct Progress<G: Sequence>: Sequence {
     let generator: G
     let configuration: [ProgressElementType]?
     let printer: ProgressBarPrinter?
-    
+
     public init(_ generator: G, configuration: [ProgressElementType]? = nil, printer: ProgressBarPrinter? = nil) {
         self.generator = generator
         self.configuration = configuration
         self.printer = printer
     }
-    
+
     public func makeIterator() -> ProgressGenerator<G.Iterator> {
         let count = generator.underestimatedCount
         return ProgressGenerator(source: generator.makeIterator(), count: count, configuration: configuration, printer: printer)
@@ -111,11 +122,11 @@ public protocol ProgressElementType {
 
 public struct ProgressBarLine: ProgressElementType {
     let barLength: Int
-    
+
     public init(barLength: Int = 30) {
         self.barLength = barLength
     }
-    
+
     public func value(_ progressBar: ProgressBar) -> String {
         var completedBarElements = 0
         if progressBar.count == 0 {
@@ -123,7 +134,7 @@ public struct ProgressBarLine: ProgressElementType {
         } else {
             completedBarElements = Int(Double(barLength) * (Double(progressBar.index) / Double(progressBar.count)))
         }
-        
+
         var barArray = [String](repeating: "-", count: completedBarElements)
         barArray += [String](repeating: " ", count: barLength - completedBarElements)
         return "[" + barArray.joined(separator: "") + "]"
@@ -132,7 +143,7 @@ public struct ProgressBarLine: ProgressElementType {
 
 public struct ProgressIndex: ProgressElementType {
     public init() {}
-    
+
     public func value(_ progressBar: ProgressBar) -> String {
         return "\(progressBar.index) of \(progressBar.count)"
     }
@@ -140,11 +151,11 @@ public struct ProgressIndex: ProgressElementType {
 
 public struct ProgressPercent: ProgressElementType {
     let decimalPlaces: Int
-    
+
     public init(decimalPlaces: Int = 0) {
         self.decimalPlaces = decimalPlaces
     }
-    
+
     public func value(_ progressBar: ProgressBar) -> String {
         var percentDone = 100.0
         if progressBar.count > 0 {
@@ -156,24 +167,23 @@ public struct ProgressPercent: ProgressElementType {
 
 public struct ProgressTimeEstimates: ProgressElementType {
     public init() {}
-    
+
     public func value(_ progressBar: ProgressBar) -> String {
         let totalTime = getTimeOfDay() - progressBar.startTime
-        
+
         var itemsPerSecond = 0.0
         var estimatedTimeRemaining = 0.0
         if progressBar.index > 0 {
             itemsPerSecond = Double(progressBar.index) / totalTime
             estimatedTimeRemaining = Double(progressBar.count - progressBar.index) / itemsPerSecond
         }
-        
+
         let estimatedTimeRemainingString = formatDuration(estimatedTimeRemaining)
-        
+
         return "ETA: \(estimatedTimeRemainingString) (at \(itemsPerSecond.format(2))) it/s)"
     }
-    
+
     fileprivate func formatDuration(_ duration: Double) -> String {
-        print("duration", duration)
         let duration = Int(duration)
         let seconds = Double(duration % 60)
         let minutes = Double((duration / 60) % 60)
@@ -184,11 +194,11 @@ public struct ProgressTimeEstimates: ProgressElementType {
 
 public struct ProgressString: ProgressElementType {
     let string: String
-    
+
     public init(string: String) {
         self.string = string
     }
-    
+
     public func value(_: ProgressBar) -> String {
         return string
     }
@@ -212,25 +222,25 @@ extension Double {
         let components = value
             .split { $0 == "." }
             .map { String($0) }
-        
+
         var integerPart = components.first ?? "0"
-        
+
         let missingLeadingZeros = minimumIntegerPartLength - integerPart.count
         if missingLeadingZeros > 0 {
             integerPart = stringWithZeros(missingLeadingZeros) + integerPart
         }
-        
+
         if decimalPartLength == 0 {
             return integerPart
         }
-        
+
         var decimalPlaces = components.last?.substringWithRange(0, end: decimalPartLength) ?? "0"
         let missingPlaceCount = decimalPartLength - decimalPlaces.count
         decimalPlaces += stringWithZeros(missingPlaceCount)
-        
+
         return "\(integerPart).\(decimalPlaces)"
     }
-    
+
     fileprivate func stringWithZeros(_ count: Int) -> String {
         return Array(repeating: "0", count: count).joined(separator: "")
     }

@@ -124,13 +124,15 @@ enum CLIExample {
             width: 1080,
             height: 1920,
             displayScale: 2.0,
-            captureDuration: .seconds(10),
+            captureDuration: .seconds(7),
             saveVideoFile: true
         ) {
 //            BasicCounterView(initialCounter: 0)
 //            VideoTestView()
-//            ImageTestView()
-            SoundTestView()
+            ImageTestView()
+//            SoundTestView()
+//            SpriteKitTestView()
+//            SceneKitTestView()
         }
 
         let controlledClock = recorder.controlledClock

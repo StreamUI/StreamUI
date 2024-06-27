@@ -36,9 +36,5 @@ public func createStreamUIRecorder<Content: View>(
 
     recorder.setRenderer(view: contentView)
 
-//    Task { @MainActor in
-//        recorder.setRenderer(view: contentView)
-//    }
-
     return recorder
 }
