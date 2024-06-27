@@ -49,7 +49,7 @@ public struct StreamingImage: View {
         do {
             self.image = try await PreloadManager.shared.image(from: url)
         } catch {
-            print("Failed to preload image: \(error)")
+            LoggerHelper.shared.error("Failed to preload image: \(error)")
         }
     }
 }

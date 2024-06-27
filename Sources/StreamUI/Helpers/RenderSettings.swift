@@ -85,7 +85,6 @@ public struct RenderSettings {
             try FileManager.default.createDirectory(at: tempDirectoryURL, withIntermediateDirectories: true, attributes: nil)
             try FileManager.default.createDirectory(at: videoDirectoryURL, withIntermediateDirectories: true, attributes: nil)
         } catch {
-            print("failed")
             fatalError("Failed to create directories: \(error)")
         }
     }

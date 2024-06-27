@@ -29,8 +29,6 @@ public func createStreamUIRecorder<Content: View>(
     let view = content()
     let viewTypeName = getTypeName(of: view)
 
-    print("Type name", viewTypeName)
-
     let renderSettings = RenderSettings(
         name: viewTypeName,
         width: Int(width),

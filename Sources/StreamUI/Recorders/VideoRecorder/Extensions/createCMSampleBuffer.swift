@@ -27,7 +27,7 @@ extension VideoRecorder {
                                                                   imageBuffer: pixelBuffer,
                                                                   formatDescriptionOut: &formatDesc)
         guard status == noErr, let formatDesc = formatDesc else {
-            print("Failed to create CMVideoFormatDescription")
+            LoggerHelper.shared.error("Failed to create CMVideoFormatDescription")
             return nil
         }
         
@@ -40,7 +40,7 @@ extension VideoRecorder {
                                                                sampleTiming: &sampleTimingInfo,
                                                                sampleBufferOut: &sampleBuffer)
         guard status2 == noErr, let sampleBuffer = sampleBuffer else {
-            print("Failed to create CMSampleBuffer")
+            LoggerHelper.shared.error("Failed to create CMSampleBuffer")
             return nil
         }
         
