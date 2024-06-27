@@ -54,10 +54,10 @@ public struct BasicCounterView: View {
 
             Task {
                 print("going to load")
-                try await recorder?.loadAudio(from: audioUrl)
+//                try await recorder?.loadAudio(from: audioUrl)
                 print("loaded audio")
 
-                recorder?.playAudio(from: audioUrl)
+//                recorder?.playAudio(from: audioUrl)
             }
 //            recorder.l
 //            playAudio()
@@ -83,10 +83,8 @@ public struct BasicCounterView: View {
     private func startTimer() {
         Task {
             while true {
-                print("TIMER LOOP")
                 //                print("RECORDER COUNT", recorder?.frameCount)
                 try await recorder?.controlledClock.clock.sleep(for: .seconds(1.0))
-                print("TIMER LOOP AFETER")
                 //                try await recorder?.clock.sleep(for: .seconds(1.0 / Double(30)))
                 counter += 1
             }

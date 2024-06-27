@@ -22,6 +22,7 @@ let package = Package(
         .package(url: "https://github.com/stencilproject/Stencil.git", from: "0.15.1"),
         .package(url: "https://github.com/pointfreeco/swift-clocks.git", from: "1.0.2"),
         .package(url: "https://github.com/kean/Nuke.git", from: "12.7.3"),
+        .package(url: "https://github.com/vapor/console-kit.git", from: "4.14.3"),
 
     ],
     targets: [
@@ -32,6 +33,7 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "Clocks", package: "swift-clocks"),
                 .product(name: "Nuke", package: "Nuke"),
+                .product(name: "ConsoleKit", package: "console-kit"),
             ],
             path: "Sources/StreamUI",
             resources: [

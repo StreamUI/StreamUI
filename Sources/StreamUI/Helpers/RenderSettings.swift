@@ -23,6 +23,7 @@ public struct LivestreamSettings {
 }
 
 public struct RenderSettings {
+    public var name: String
     public var width: Int
     public var height: Int
     public var fps: Int32
@@ -31,13 +32,18 @@ public struct RenderSettings {
 
     public var avCodecKey = AVVideoCodecType.h264
     public var saveVideoFile: Bool
+
     public var videoFilenameExt = "mp4"
+    public var videosDirectoryURL: URL
     public var tempDirectoryURL: URL
+    public var videoDirectoryURL: URL
+
     public var videoFilename: String
 
     public var livestreamSettings: [LivestreamSettings]?
 
     public init(
+        name: String = "streamui_video",
         width: Int,
         height: Int,
         fps: Int32,
@@ -46,6 +52,7 @@ public struct RenderSettings {
         saveVideoFile: Bool = true,
         livestreamSettings: [LivestreamSettings]?
     ) {
+        self.name = name
         self.width = width
         self.height = height
         self.fps = fps
@@ -54,21 +61,40 @@ public struct RenderSettings {
         self.livestreamSettings = livestreamSettings
         self.saveVideoFile = saveVideoFile
 
-        self.videoFilename = "stream_ui_video_\(UUID().uuidString)"
+        // Generate a short timestamp
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyyMMdd_HHmmss"
+        let timestamp = dateFormatter.string(from: Date())
 
-        self.tempDirectoryURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        // Create the video file name using the name and timestamp
+        self.videoFilename = "\(name)_\(timestamp)"
+
+        // Get the app's container directory
+        guard let containerURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            fatalError("Failed to get app container directory")
+        }
+
+        // Create a "StreamUI" folder in the app's container
+        let streamUIDirectoryURL = containerURL.appendingPathComponent("StreamUI", isDirectory: true)
+        self.videosDirectoryURL = streamUIDirectoryURL.appendingPathComponent("videos", isDirectory: true)
+        self.tempDirectoryURL = videosDirectoryURL.appendingPathComponent(".tmp", isDirectory: true)
+        self.videoDirectoryURL = videosDirectoryURL.appendingPathComponent(name)
 
         do {
+            try FileManager.default.createDirectory(at: videosDirectoryURL, withIntermediateDirectories: true, attributes: nil)
             try FileManager.default.createDirectory(at: tempDirectoryURL, withIntermediateDirectories: true, attributes: nil)
+            try FileManager.default.createDirectory(at: videoDirectoryURL, withIntermediateDirectories: true, attributes: nil)
         } catch {
-            fatalError("Failed to create temporary directory: \(error)")
+            fatalError("Failed to create directories: \(error)")
         }
     }
 
-    var outputURL: URL? {
-        let fileManager = FileManager.default
-        let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        return documents.appendingPathComponent(videoFilename).appendingPathExtension(videoFilenameExt)
+    var outputURL: URL {
+        return videoDirectoryURL.appendingPathComponent(videoFilename).appendingPathExtension(videoFilenameExt)
+    }
+
+    var tempOutputURL: URL {
+        tempDirectoryURL.appendingPathComponent(videoFilename).appendingPathExtension(videoFilenameExt)
     }
 
     func getDefaultBitrate() -> Int {

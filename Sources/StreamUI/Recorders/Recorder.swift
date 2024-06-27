@@ -1,4 +1,5 @@
 import AVFoundation
+import ConsoleKit
 import HaishinKit
 import Observation
 import SwiftUI
@@ -8,6 +9,8 @@ public class Recorder {
     public enum RecordingState {
         case idle, recording, paused, finished
     }
+
+    private var pauseCounter: Int = 0
 
     public private(set) var state: RecordingState = .idle
 
@@ -26,11 +29,14 @@ public class Recorder {
     public var renderSettings: RenderSettings
     public var assetWriter: AVAssetWriter?
 
+    private var hud: HUD
+
     public init(renderSettings: RenderSettings) {
         self.controlledClock = ControlledClock()
         self.frameTimer = FrameTimer(frameRate: Double(renderSettings.fps))
 
         self.renderSettings = renderSettings
+        self.hud = HUD()
 
         self.videoRecorder = VideoRecorder(renderSettings: renderSettings)
         self.audioRecorder = AudioRecorder(renderSettings: renderSettings, frameTimer: frameTimer)
@@ -38,6 +44,7 @@ public class Recorder {
 
         videoRecorder.setParentRecorder(self)
         audioRecorder.setParentRecorder(self)
+        hud.setRecorder(recorder: self)
     }
 
     @MainActor
@@ -59,16 +66,13 @@ public class Recorder {
         state = .recording
         frameTimer.start()
 
-//        controlledClock.start()
         setupRecording()
         startRecordingTask()
     }
 
     public func setupRecording() {
-        let tempDirectoryURL = FileManager.default.temporaryDirectory
-        let outputURL = tempDirectoryURL.appendingPathComponent(UUID().uuidString).appendingPathExtension("mp4")
         do {
-            assetWriter = try AVAssetWriter(outputURL: outputURL, fileType: .mp4)
+            assetWriter = try AVAssetWriter(outputURL: renderSettings.tempOutputURL, fileType: .mp4)
 
             videoRecorder.setupVideoInput()
             audioRecorder.setupAudioInput()
@@ -77,10 +81,9 @@ public class Recorder {
             assetWriter?.startSession(atSourceTime: CMTime.zero)
 
             videoRecorder.startProcessingQueue()
-            audioRecorder.startRecording()
             rtmpStreaming.startStreaming()
         } catch {
-            print("Error starting recording: \(error)")
+            LoggerHelper.shared.error("Error starting recording: \(error)")
         }
     }
 
@@ -91,7 +94,7 @@ public class Recorder {
             let totalFrames = calculateTotalFrames()
             let frameDuration = Duration.seconds(1) / Int(renderSettings.fps)
 
-            while !Task.isCancelled, self.frameTimer.frameCount < totalFrames {
+            while !Task.isCancelled, state != .finished, self.frameTimer.frameCount < totalFrames {
                 switch state {
                 case .recording:
                     let start = clock.now
@@ -105,9 +108,11 @@ public class Recorder {
 
                     if sleepDuration > .zero {
                         try await Task.sleep(for: sleepDuration)
-                    } else {}
+                    }
+                    self.hud.render()
 
                 case .paused:
+                    self.hud.render()
                     try await Task.sleep(for: frameDuration)
 
                 case .finished, .idle:
@@ -115,78 +120,71 @@ public class Recorder {
                 }
             }
 
-            print("WE OUTTAHERE")
-
-            videoRecorder.stopProcessingQueue()
-            print("Finished capturing frames")
-            await videoRecorder.waitForProcessingCompletion()
-            print("Finished processing all frames")
+            self.hud.render()
             await finishRecording()
         }
     }
 
-    func finishRecording() {
-        print("FINISH recording")
-        guard state != .idle else { return }
-
+    func finishRecording() async {
+        videoRecorder.stopProcessingQueue()
+        await videoRecorder.waitForProcessingCompletion()
         audioRecorder.stopRecording()
 
-        finishWriting()
-        recordingCompletionContinuation.continuation.finish()
-        state = .idle
+        await finishWriting()
     }
 
     public func pauseRecording() {
+        pauseCounter += 1
         guard state == .recording else { return }
         state = .paused
-//        audioRecorder.pauseAudio()
+        audioRecorder.pauseAllAudio()
     }
 
     public func resumeRecording() {
+        pauseCounter -= 1
         guard state == .paused else { return }
-        state = .recording
-//        audioRecorder.resumeAudio()
+        if pauseCounter == 0, state == .paused {
+            state = .recording
+            audioRecorder.resumeAllAudio()
+        }
     }
 
     public func stopRecording() {
         guard state == .recording || state == .paused else { return }
-        state = .finished
-        recordingTask?.cancel()
-
         audioRecorder.stopRecording()
-        videoRecorder.stopProcessingQueue()
-
-        Task {
-            await videoRecorder.waitForProcessingCompletion()
-            await finishRecording()
-        }
+        state = .finished
     }
 
     public func waitForRecordingCompletion() async {
         for await _ in recordingCompletionContinuation.stream {}
-        try? await Task.sleep(for: .seconds(1.0))
     }
 
-    private func finishWriting() {
-        print("finish writing")
-        if renderSettings.saveVideoFile {
-            assetWriter?.finishWriting {
-                print("Recording finished and saved to \(String(describing: self.assetWriter?.outputURL))")
-//                DispatchQueue.main.async {
-//                    NSApplication.shared.terminate(nil)
-//                }
-
-                if let outputURL = self.assetWriter?.outputURL, let duration = self.renderSettings.captureDuration {
-                    self.trimVideo(at: outputURL, to: duration) { trimmedURL in
-                        print("Recording finished and saved to \(String(describing: trimmedURL))")
-                    }
-                }
-            }
+    private func finishWriting() async {
+        guard renderSettings.saveVideoFile else {
+            recordingCompletionContinuation.continuation.finish()
+            return
         }
+
+        await assetWriter?.finishWriting()
+
+        guard let tempOutputURL = assetWriter?.outputURL else {
+            LoggerHelper.shared.error("No output url")
+            recordingCompletionContinuation.continuation.finish()
+            return
+        }
+
+        if let outputURL = assetWriter?.outputURL, let duration = renderSettings.captureDuration {
+            if let trimmedURL = await trimVideo(at: outputURL, to: duration) {
+                try? FileManager.default.removeItem(at: tempOutputURL)
+            }
+        } else {
+            try? FileManager.default.moveItem(at: tempOutputURL, to: renderSettings.outputURL)
+        }
+
+        recordingCompletionContinuation.continuation.finish()
     }
 
-//    Audio
-
+    //    Audio
     public func loadAudio(from url: URL) async throws {
         pauseRecording()
         try await audioRecorder.loadAudio(from: url)
@@ -197,16 +195,16 @@ public class Recorder {
         audioRecorder.playAudio(from: url)
     }
 
-    public func stopAudio() {
-//        audioRecorder.stopAudio()
+    public func stopAudio(from url: URL) {
+        audioRecorder.stopAudio(from: url)
     }
 
-    public func pauseAudio() {
-//        audioRecorder.pauseAudio()
+    public func pauseAudio(from url: URL) {
+        audioRecorder.pauseAudio(from: url)
     }
 
-    public func resumeAudio() {
-//        audioRecorder.resumeAudio()
+    public func resumeAudio(from url: URL) {
+        audioRecorder.resumeAudio(from: url)
     }
 
 //    Video
@@ -224,7 +222,7 @@ public class Recorder {
         frameTimer.incrementFrame()
     }
 
-    private func calculateTotalFrames() -> Int {
+    public func calculateTotalFrames() -> Int {
         if let captureDuration = renderSettings.captureDuration {
             return Int(captureDuration.components.seconds) * Int(renderSettings.fps)
         } else {
@@ -232,35 +230,35 @@ public class Recorder {
         }
     }
 
-    private func trimVideo(at url: URL, to duration: Duration, completion: @escaping (URL?) -> Void) {
+    private func trimVideo(at url: URL, to duration: Duration) async -> URL? {
         let asset = AVAsset(url: url)
         let startTime = CMTime.zero
         let endTime = CMTime(seconds: Double(duration.components.seconds), preferredTimescale: 600)
 
         guard let exportSession = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetHighestQuality) else {
-            print("Failed to create export session")
-            completion(nil)
-            return
+            LoggerHelper.shared.error("Error trimming video - cant AVAssetExportSession")
+            return nil
         }
 
-        let trimmedOutputURL = url.deletingLastPathComponent().appendingPathComponent(UUID().uuidString).appendingPathExtension("mp4")
+        let trimmedOutputURL = renderSettings.outputURL
         exportSession.outputURL = trimmedOutputURL
         exportSession.outputFileType = .mp4
         exportSession.timeRange = CMTimeRange(start: startTime, end: endTime)
 
-        exportSession.exportAsynchronously {
-            switch exportSession.status {
-            case .completed:
-                print("Trimming completed successfully")
-                completion(trimmedOutputURL)
-            case .failed:
-                print("Trimming failed: \(String(describing: exportSession.error))")
-                completion(nil)
-            case .cancelled:
-                print("Trimming cancelled")
-                completion(nil)
-            default:
-                break
+        return await withCheckedContinuation { continuation in
+            exportSession.exportAsynchronously {
+                switch exportSession.status {
+                case .completed:
+                    continuation.resume(returning: trimmedOutputURL)
+                case .failed:
+                    LoggerHelper.shared.error("Trimming failed: \(String(describing: exportSession.error))")
+                    continuation.resume(returning: nil)
+                case .cancelled:
+                    LoggerHelper.shared.error("Trimming cancelled")
+                    continuation.resume(returning: nil)
+                default:
+                    continuation.resume(returning: nil)
+                }
             }
         }
     }

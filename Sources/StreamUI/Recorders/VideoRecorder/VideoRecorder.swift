@@ -9,15 +9,12 @@ import VideoToolbox
 class VideoRecorder {
     public var renderSettings: RenderSettings
     weak var parentRecorder: Recorder?
+
     private var videoInput: AVAssetWriterInput?
     private var pixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor?
-    private var pixelBufferTimes: [Double] = []
 
     private let frameStream = FrameStream()
     private var processingTask: Task<Void, Error>?
-
-    private let processingCompletionContinuation = AsyncStream<Void>.makeStream()
-    private var isProcessingComplete = false
 
     init(renderSettings: RenderSettings) {
         self.renderSettings = renderSettings
@@ -32,10 +29,10 @@ class VideoRecorder {
 
         let compressionProperties: [String: Any] = [
             AVVideoAverageBitRateKey: renderSettings.getDefaultBitrate(),
-            AVVideoMaxKeyFrameIntervalKey: renderSettings.getDefaultKeyframeInterval(), // Keyframe every 1 second at 30 fps
+            AVVideoMaxKeyFrameIntervalKey: renderSettings.getDefaultKeyframeInterval(),
             AVVideoProfileLevelKey: AVVideoProfileLevelH264High41,
             AVVideoH264EntropyModeKey: AVVideoH264EntropyModeCABAC,
-            AVVideoQualityKey: 0.1 // High quality (0.0 - 1.0)
+            AVVideoQualityKey: 0.85 // High quality (0.0 - 1.0)
         ]
 
         let videoSettings: [String: Any] = [
@@ -62,24 +59,13 @@ class VideoRecorder {
         processingTask = Task {
             for await videoFrame in frameStream.stream {
                 guard !Task.isCancelled else { break }
-//                let start = parentRecorder?.clock.now
                 self.processFrame(cgImage: videoFrame.image, frameTime: videoFrame.time)
-//                let end = parentRecorder?.clock.now
-//                let elapsed = end! - start!
             }
-            print("finished processing queue")
-            isProcessingComplete = true
-
-            processingCompletionContinuation.continuation.yield()
-            processingCompletionContinuation.continuation.finish()
         }
     }
 
     func waitForProcessingCompletion() async {
-        while !isProcessingComplete {
-            try? await Task.sleep(for: .milliseconds(100))
-        }
-        for await _ in processingCompletionContinuation.stream {}
+        try? await processingTask?.value
     }
 
     func stopProcessingQueue() {
@@ -91,11 +77,7 @@ class VideoRecorder {
     }
 
     public func processFrame(cgImage: CGImage, frameTime: CMTime) {
-//        let startProcessTime = parentRecorder?.clock.now
         guard let pixelBuffer = pixelBufferFromCGImage(cgImage, width: renderSettings.width, height: renderSettings.height) else { return }
-//        let endPixelBufferTime = parentRecorder?.clock.now
-//        let pixelBufferElapsed = endPixelBufferTime! - startProcessTime!
-//        pixelBufferTimes.append(Double(pixelBufferElapsed.inMilliseconds))
         if renderSettings.saveVideoFile {
             guard let assetWriter = parentRecorder?.assetWriter, assetWriter.status == .writing else { return }
             guard let videoInput = videoInput, videoInput.isReadyForMoreMediaData else { return }
