@@ -20,6 +20,7 @@
 StreamUI is a library designed for SwiftUI that enables developers to create dynamic videos programmatically. It goes beyond traditional video generation tools like Remotion, offering real-time video rendering and live streaming capabilities. Ideal for applications ranging from faceless Tiktok/Youtube shorts videos to live event broadcasting, and much more. StreamUI lets you create video templates in SwiftUI and render them with dynamic inputs.
 
 
+### This video is 100% SwiftUI code generated with StreamUI 👇
 
 https://github.com/StreamUI/StreamUI/assets/775808/99176027-a4f2-459f-a180-cc02a00f9ee9
 
