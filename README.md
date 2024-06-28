@@ -21,19 +21,15 @@ StreamUI is a library designed for SwiftUI that enables developers to create dyn
 
 
 ### This video is 100% SwiftUI code generated with StreamUI 👇
+[*Video created with StreamUI. See example code here*](https://github.com/StreamUI/streamui-starter)
 
 https://github.com/StreamUI/StreamUI/assets/775808/99176027-a4f2-459f-a180-cc02a00f9ee9
 
-
-[*Video created with StreamUI. See example code here*](https://github.com/StreamUI/streamui-starter)
-
-
 * **Real-Time Video Rendering**
-<br> Generate and manipulate video content on the fly using Swift code. This feature allows for the seamless integration of animations, text overlays, and media, adapting dynamically to user interactions 
-or external data.
+<br> Generate and manipulate video content on the fly using Swift code. Integrate animations, text overlays, and media, adapting dynamically to user interactions or external data.
 
 * **Live Streaming**
-<br> Broadcast live video streams directly from your application. This functionality is perfect for apps that require sharing events as they happen, such as live tutorials, gaming sessions, or interactive webinars.
+<br> Broadcast live video streams directly from your application. You can create videos with SwiftUI that stream in realtime. So you could be receiving events from outside which then gets reflected into the live stream in real time. Magic!
 
 * **Dynamic video generation**
 <br> Generate dynamic videos. Pull in data from your database, react to outside events, generate batches of videos in different sizes, AB test videos in bulk. You can do it all. 
@@ -305,7 +301,7 @@ recorder.stopAudio(from: URL(string: "https://example.com/audiofile.mp3")!)
 
 ### Controlling Time
 
-One of the significant differences between StreamUI and Remotion is how time and animation control are managed. In Remotion, video rendering is inherently parallelized, meaning that everything needs to be coded based on the current frame. This can make it more challenging to reason about and manage animations and state changes because they must all be defined relative to the current frame.
+One of the significant differences between StreamUI and Remotion is how time and animation control are managed. In Remotion, video rendering is parallelized, meaning that everything needs to be coded in relation to the current frame. This can make it more challenging to reason about and manage animations and state changes because they must all be defined relative to the current frame.
 
 In contrast, since StreamUI renders the view in real time you don't need to worry about parallelization which allows a simpler way of programming videos by providing a shared clock that can be used to synchronize animations and state changes. This shared clock ensures that all time-based operations are in sync, making it easier to manage and reason about the flow of your animations and state transitions. If you program any changes in your views with this shared clock, then if you pause the recording (for example if you want to wait for an API call) then your views will nicely wait until you are recording again.
 
@@ -368,7 +364,7 @@ const showResults = currentFrameInRound >= roundDuration;
 
 #### Pausing Time
 
-In StreamUI, you have the ability to pause time seamlessly, which is particularly useful for managing background tasks and preloading assets. By calling `recorder.pauseRecording`, you can halt the recording process and stop all animations. When you resume the recording, everything will pick up exactly where it left off, ensuring a smooth and synchronized experience. While you are paused, no frames get added to your video.
+In StreamUI, you have the ability to pause time, which is particularly useful for managing background tasks and preloading assets. By calling `recorder.pauseRecording`, you can halt the recording process and stop all animations. When you resume the recording, everything will pick up exactly where it left off, ensuring a smooth and synchronized experience. While you are paused, no frames get added to your video.
 
 Our `StreamingImage`, `StreamingVideo`, and audio components are designed to automatically pause the recording while preloading assets, ensuring your assets are present and visible as soon as you want them in the video.
 
@@ -408,7 +404,7 @@ private func loadImage() async {
 
 
 
-## Supported SwiftUI Views
+## Supported SwiftUI Views / Limitations
 
 Please note. As it is written now we are at the whims of `ImageRenderer`, which comes with this warning
 
