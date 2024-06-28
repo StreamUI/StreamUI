@@ -3,7 +3,9 @@
 
 [![Team Chat](https://design.vapor.codes/images/discordchat.svg)](https://discord.gg/NpHj7brca4)
 [![MIT License](https://design.vapor.codes/images/mitlicense.svg)](LICENSE)
-[![Swift 5.10+](https://design.vapor.codes/images/swift510up.svg)](https://swift.org)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FStreamUI%2FStreamUI%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/StreamUI/StreamUI)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FStreamUI%2FStreamUI%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/StreamUI/StreamUI)
+<!--[![Swift 5.10+](https://design.vapor.codes/images/swift510up.svg)](https://swift.org)-->
 
 
 <!--[![Discord](https://img.shields.io/discord/1071029581009657896?style=flat&logo=discord&logoColor=fff&color=404eed)](https://discord.gg/NpHj7brca4)-->
