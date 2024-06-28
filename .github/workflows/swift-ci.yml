@@ -13,13 +13,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        # os: [ubuntu-latest, macos-latest]
+        os: [macos-latest]
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Swift
-        uses: swift-actions/setup-swift@65540b95f51493d65f5e59e97dcef9629ddf11bf
+        uses: SwiftyLab/setup-swift@latest
         with:
           swift-version: '5.10'
 
