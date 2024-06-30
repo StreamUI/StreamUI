@@ -77,7 +77,7 @@ If people want support for < less please open a ticket. I wanted to use `@Observ
 	        .macOS(.v14),
 	    ],
 	    dependencies: [
-	        .package(url: "https://github.com/StreamUI/StreamUI.git", from: "0.1.0"),
+	        .package(url: "https://github.com/StreamUI/StreamUI.git", from: "0.1.2"),
 	    ],
 	    targets: [
 	        .executableTarget(
