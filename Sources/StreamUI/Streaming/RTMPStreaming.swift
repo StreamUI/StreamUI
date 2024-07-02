@@ -75,6 +75,8 @@ public class RTMPStreaming: ObservableObject {
             maxKeyFrameIntervalDuration: 2
         )
         
+        rtmpStream.audioSettings.bitRate = 128_000
+        
 //        rtmpStream.bitrateStrategy = VideoAdaptiveNetBitRateStrategy(mamimumVideoBitrate: VideoCodecSettings.default.bitRate)
     }
     
