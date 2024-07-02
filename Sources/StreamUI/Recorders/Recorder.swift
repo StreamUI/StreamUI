@@ -29,14 +29,14 @@ public class Recorder {
     public var renderSettings: RenderSettings
     public var assetWriter: AVAssetWriter?
 
-    private var hud: HUD
+   private var hud: HUD
 
     public init(renderSettings: RenderSettings) {
         self.controlledClock = ControlledClock()
         self.frameTimer = FrameTimer(frameRate: Double(renderSettings.fps))
 
         self.renderSettings = renderSettings
-        self.hud = HUD()
+       self.hud = HUD()
 
         self.videoRecorder = VideoRecorder(renderSettings: renderSettings)
         self.audioRecorder = AudioRecorder(renderSettings: renderSettings, frameTimer: frameTimer)
@@ -44,7 +44,7 @@ public class Recorder {
 
         videoRecorder.setParentRecorder(self)
         audioRecorder.setParentRecorder(self)
-        hud.setRecorder(recorder: self)
+       hud.setRecorder(recorder: self)
     }
 
     @MainActor
@@ -100,19 +100,21 @@ public class Recorder {
                     let start = clock.now
 
                     await captureFrame()
-                    let end = clock.now
-                    let elapsed = end - start
 
                     await controlledClock.advance(by: frameDuration)
+                    let end = clock.now
+                    let elapsed = end - start
                     let sleepDuration = frameDuration - elapsed
 
                     if sleepDuration > .zero {
+//                        try await Task.sleep(for: .seconds(0.1))
                         try await Task.sleep(for: sleepDuration)
+//                        try await Task.sleep(for: frameDuration)
                     }
-                    self.hud.render()
+                   self.hud.render()
 
                 case .paused:
-                    self.hud.render()
+                   self.hud.render()
                     try await Task.sleep(for: frameDuration)
 
                 case .finished, .idle:
@@ -120,7 +122,7 @@ public class Recorder {
                 }
             }
 
-            self.hud.render()
+           self.hud.render()
             await finishRecording()
         }
     }
