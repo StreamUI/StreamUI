@@ -100,11 +100,22 @@ public struct RenderSettings {
     func getDefaultBitrate() -> Int {
         let numOfPixels = width * height
         switch numOfPixels {
-        case 0 ... 102_240: return 800_000 // for 4/3 and 16/9 240p
-        case 102_241 ... 230_400: return 1_000_000 // for 16/9 360p
-        case 230_401 ... 409_920: return 1_300_000 // for 4/3 and 16/9 480p
-        case 409_921 ... 921_600: return 2_000_000 // for 4/3 600p, 4/3 768p and 16/9 720p
-        default: return 3_000_000 // for 16/9 1080p
+        case 0 ... 102_240: // for 4/3 and 16/9 240p
+            return 4_000_000
+        case 102_241 ... 230_400: // for 16/9 360p
+            return 4_000_000
+        case 230_401 ... 409_920: // for 4/3 and 16/9 480p
+            return 4_000_000
+        case 409_921 ... 921_600: // for 4/3 600p, 4/3 768p and 16/9 720p
+            return fps == 60 ? 6_000_000 : 4_000_000
+        case 921_601 ... 2_073_600: // for 16/9 1080p
+            return fps == 60 ? 12_000_000 : 10_000_000
+        case 2_073_601 ... 3_686_400: // for 1440p
+            return fps == 60 ? 24_000_000 : 15_000_000
+        case 3_686_401 ... 8_294_400: // for 4K / 2160p
+            return fps == 60 ? 35_000_000 : 30_000_000
+        default:
+            return 30_000_000 // default for resolutions higher than 4K
         }
     }
 
